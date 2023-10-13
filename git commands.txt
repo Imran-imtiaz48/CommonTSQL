@@ -1,0 +1,22 @@
+
+
+git config --global user.name "Kalpesh Patel"
+git config --global user.email "kjpatel80@gmail.com"
+git clone https://github.com/kjpatel80/LeetCode.git
+git add ""
+git add .
+git status
+git commit -m''
+git push origin main
+
+
+Init -used to create a new git repo
+
+git remote add origin <link>
+
+git remote -v
+
+git branch
+git branch -M main (to rename branch)
+
+git push origin main
