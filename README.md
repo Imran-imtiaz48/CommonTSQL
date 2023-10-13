@@ -1,1 +1,1 @@
-This folder contain frequen use T-SQL for faster development.
+This folder contain frequently used T-SQL for faster development.
