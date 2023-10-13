@@ -1,0 +1,10 @@
+
+20090703		Kalpesh	96.00		Added SignInIDF field
+
+spOrderInsert added @SignInIDF
+
+spOrderInsert
+spOrderUpdate
+spOrderSelectOnID
+
+script for spScrub and usysSetting generated for IRG, USR2 and newton

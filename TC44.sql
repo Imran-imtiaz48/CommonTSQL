@@ -1,0 +1,34 @@
+Use Tempdb
+go
+IF OBJECT_ID('TC44','U') IS NOT NULL
+    DROP TABLE TC44
+GO
+   
+CREATE TABLE TC44(
+    ItemID INT,
+    Color VARCHAR(10) )
+   
+   
+INSERT INTO TC44 (ItemID, Color)
+SELECT 1, 'Red' UNION ALL
+SELECT 1, 'Green' UNION ALL
+SELECT 2, 'Red' UNION ALL
+SELECT 2, 'Green' UNION ALL
+SELECT 2, 'Yellow' UNION ALL
+SELECT 2, 'Orange' UNION ALL
+SELECT 3, 'Red' UNION ALL
+SELECT 4, 'Green' UNION ALL
+SELECT 5, 'Blue' UNION ALL
+SELECT 6, 'Orange'
+
+SELECT * FROM TC44 
+
+SELECT DISTINCT a.Color, b.Occ
+FROM TC44 a
+INNER JOIN 
+(
+	SELECT Color , Count(*) occ
+	FROM TC44 
+	GROUP BY Color 
+) b
+ON a.Color = b.Color

@@ -1,0 +1,55 @@
+USE [IRG]
+GO
+/****** Object: StoredProcedure [dbo].[spScrub] Script Date: 07/02/2009 21:05:05 ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+
+ALTER procedure [dbo].[spScrub]
+as
+/*
+Purpose: Remove sensitive data from the database for testing
+Also prevents email alerts going out to live addresses during testing
+SRS Document: <SRS Document>
+Paragrahp: <Paragraph>
+Date Created: 20080423
+Author: Maurice
+Tested by: Maurice
+Version: 38 -- select max(VersionID) from usysVersion
+
+PARAMETER NOTES:
+
+
+Update History:
+Date Modified Author: Version: Reason
+20090209 Chintan 69 To reduce size of IRG database backup, TRUNCATE tblOrderAuditLog
+
+*/
+
+UPDATE [dbo].[tblVendor]
+set [PortalPassword] = ''
+
+
+alter table tblOrder
+disable trigger tr_tblOrder_Audit_UD
+
+update tblOrder
+set SiteContactEmail ='irgtest@idb.bz'
+, [PPPOEPassword] = NULL
+, [VPNCPEPassword] = NULL
+, [DialPassword] = NULL
+, [BBandPassword] = NULL
+
+alter table tblOrder
+enable trigger tr_tblOrder_Audit_UD
+
+update tblAccount
+set EmailNotificationAddresses = 'testaccount@idb.bz'
+
+update journal.tblTemplate
+set ToID = 'irgpm@idb.bz'
+
+TRUNCATE TABLE dbo.tblOrderAuditLog -- To reduce size of IRG database backup, TRUNCATE tblOrderAuditLog
+
+-- exec irg..spScrub

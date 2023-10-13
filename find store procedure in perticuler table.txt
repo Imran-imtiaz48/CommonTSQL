@@ -1,0 +1,17 @@
+declare @TableName char(35),@cmd char(400)
+
+set @TableName = 'tblmessage'
+
+SELECT DISTINCT o.name ,o.xtype
+    FROM syscomments c
+            INNER JOIN sysobjects o ON c.id=o.id
+    WHERE c.TEXT LIKE '%' + Rtrim(@TableName) + '%'
+--and o.xtype='P'
+
+
+
+    ----Option 2
+SELECT DISTINCT o.name ,o.xtype
+    FROM syscomments c
+            INNER JOIN sysobjects o ON c.id=o.id
+    WHERE c.TEXT LIKE '%tblmessage%'
