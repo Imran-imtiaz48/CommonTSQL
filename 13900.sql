@@ -1,61 +1,62 @@
-USE Master
-go
+USE Master;
+GO
 
---enable the Database Mail feature on the server
-sp_configure 'show advanced options',1
-go
-reconfigure with override
-go
-sp_configure 'Database Mail XPs',1
-go
-reconfigure 
-go
+-- Enable the Database Mail feature on the server
+EXEC sp_configure 'show advanced options', 1;
+GO
+RECONFIGURE WITH OVERRIDE;
+GO
+EXEC sp_configure 'Database Mail XPs', 1;
+GO
+RECONFIGURE;
+GO
 
---The Configuration Component Database account
-EXECUTE msdb.dbo.sysmail_add_account_sp
+-- Configure the Database Mail account
+EXEC msdb.dbo.sysmail_add_account_sp
     @account_name = 'MyMailAccount',
     @description = 'Mail account for Database Mail',
     @email_address = 'kalpesh@idb.bz',
     @display_name = 'MyAccount',
-	--@username='kalpesh@idb.bz',
-	--@password='',
-	--@port=465,
-	--@enable_ssl = 1,	
-    @mailserver_name = 'localhost'
+    -- Uncomment and configure the following lines for secure authentication, if required
+    -- @username = 'your_username',
+    -- @password = 'your_password',
+    -- @port = 465,
+    -- @enable_ssl = 1,  
+    @mailserver_name = 'localhost';
 
+-- Create a Database Mail profile
+EXEC msdb.dbo.sysmail_add_profile_sp
+    @profile_name = 'MyMailProfile',
+    @description = 'Profile used for Database Mail';
 
---create a Mail profile.
-EXECUTE msdb.dbo.sysmail_add_profile_sp
-       @profile_name = 'MyMailProfile',
-       @description = 'Profile used for database mail'
-
---add the Database Mail account
-EXECUTE msdb.dbo.sysmail_add_profileaccount_sp
+-- Add the Database Mail account to the profile
+EXEC msdb.dbo.sysmail_add_profileaccount_sp
     @profile_name = 'MyMailProfile',
     @account_name = 'MyMailAccount',
-    @sequence_number = 1
+    @sequence_number = 1;
 
---grant the Database Mail profile access to the msdb public database role and to make the profile the default Database Mail profile
-EXECUTE msdb.dbo.sysmail_add_principalprofile_sp
+-- Grant access to the Database Mail profile and set it as the default
+EXEC msdb.dbo.sysmail_add_principalprofile_sp
     @profile_name = 'MyMailProfile',
-    @principal_name = 'public',
-    @is_default = 1 ;
+    @principal_name = 'public',  -- Assign access to the public role
+    @is_default = 1;
 
---send a test email from SQL Server. 
-   
-declare @body1 varchar(100)
-set @body1 = 'Server :'+@@servername+ ' My First Database Email '
-EXEC msdb.dbo.sp_send_dbmail @recipients='kalpesh@xeosoftware.com',
-    @subject = 'CPU Utilization of',
-    @body = @body1,
-    @body_format = 'HTML'
+-- Send a test email from SQL Server
+DECLARE @EmailBody NVARCHAR(200);
+SET @EmailBody = 'Server: ' + @@SERVERNAME + ' - My First Database Email';
 
-/*
-Select * from msdb.dbo.sysmail_profile    
-Select * from msdb.dbo.sysmail_principalprofile
-Select * from msdb.dbo.sysmail_account
+EXEC msdb.dbo.sp_send_dbmail 
+    @recipients = 'kalpesh@xeosoftware.com',
+    @subject = 'CPU Utilization Notification',
+    @body = @EmailBody,
+    @body_format = 'HTML';
 
-Delete msdb.dbo.sysmail_profile
-Delete msdb.dbo.sysmail_principalprofile
-Delete msdb.dbo.sysmail_account
-*/
+-- Optional: Query the Database Mail system tables to verify configurations
+-- SELECT * FROM msdb.dbo.sysmail_profile;
+-- SELECT * FROM msdb.dbo.sysmail_principalprofile;
+-- SELECT * FROM msdb.dbo.sysmail_account;
+
+-- Uncomment the following lines if you need to delete Database Mail configurations
+-- DELETE FROM msdb.dbo.sysmail_profile;
+-- DELETE FROM msdb.dbo.sysmail_principalprofile;
+-- DELETE FROM msdb.dbo.sysmail_account;
