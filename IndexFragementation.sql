@@ -1,50 +1,70 @@
-USE Swit
-go
-SELECT db.Name DBName, ps.database_id, ps.OBJECT_ID,
-ps.index_id, ob.Name TableName, b.name IndexName, ps.avg_fragmentation_in_percent, RowCnt.RowCounts
-FROM sys.dm_db_index_physical_stats (DB_ID(), NULL, NULL, NULL, NULL) AS ps
-	INNER JOIN sys.indexes AS b 
-		ON ps.OBJECT_ID = b.OBJECT_ID AND ps.index_id = b.index_id
-	INNER JOIN sys.databases AS db 
-		ON ps.database_ID = db.database_ID
-	INNER JOIN sys.objects AS ob 
-		ON ob.Object_ID = b.Object_ID
-	INNER JOIN 
-	(
-		SELECT so.name TableName, MAX(si.rows) RowCounts
-		FROM sysobjects so, sysindexes si 
-		WHERE so.xtype = 'U' AND si.id = OBJECT_ID(so.name) 
-		GROUP BY so.name	
-	) RowCnt
-	ON ob.Name = RowCnt.TableName
+USE Swit;
+GO
+SET NOCOUNT ON;
+
+-- Temporary Table to Store Index Fragmentation Data
+IF OBJECT_ID('tempdb..#IndexFragmentation') IS NOT NULL
+    DROP TABLE #IndexFragmentation;
+
+CREATE TABLE #IndexFragmentation (
+    DBName NVARCHAR(128),
+    DatabaseID INT,
+    ObjectID INT,
+    IndexID INT,
+    SchemaName NVARCHAR(128),
+    TableName NVARCHAR(128),
+    IndexName NVARCHAR(128),
+    AvgFragmentationPercent FLOAT,
+    RowCounts BIGINT
+);
+
+-- Insert Fragmented Index Data
+INSERT INTO #IndexFragmentation
+SELECT 
+    db.name AS DBName, 
+    ps.database_id, 
+    ps.object_id,
+    ps.index_id, 
+    sc.name AS SchemaName,
+    ob.name AS TableName, 
+    idx.name AS IndexName, 
+    ps.avg_fragmentation_in_percent, 
+    p.rows AS RowCounts
+FROM sys.dm_db_index_physical_stats(DB_ID(), NULL, NULL, NULL, 'LIMITED') AS ps
+JOIN sys.indexes AS idx 
+    ON ps.object_id = idx.object_id AND ps.index_id = idx.index_id
+JOIN sys.objects AS ob 
+    ON ob.object_id = idx.object_id
+JOIN sys.schemas AS sc 
+    ON ob.schema_id = sc.schema_id
+JOIN sys.databases AS db 
+    ON ps.database_id = db.database_id
+JOIN sys.partitions AS p 
+    ON ps.object_id = p.object_id AND ps.index_id = p.index_id
 WHERE ps.database_id = DB_ID()
-and  ps.avg_fragmentation_in_percent > 70
-ORDER BY ps.avg_fragmentation_in_percent desc
+AND ps.avg_fragmentation_in_percent > 70;
 
+-- Display Fragmented Indexes
+SELECT * 
+FROM #IndexFragmentation
+ORDER BY AvgFragmentationPercent DESC;
 
+-- Count Indexes Per Table
+SELECT 
+    db.name AS DBName, 
+    sc.name AS SchemaName, 
+    ob.name AS TableName, 
+    COUNT(idx.name) AS IndexCount
+FROM sys.indexes AS idx
+JOIN sys.objects AS ob 
+    ON ob.object_id = idx.object_id
+JOIN sys.schemas AS sc 
+    ON ob.schema_id = sc.schema_id
+JOIN sys.databases AS db 
+    ON db.database_id = DB_ID()
+WHERE ob.type = 'U'
+GROUP BY db.name, sc.name, ob.name
+ORDER BY IndexCount DESC;
 
-
-SELECT db.Name DBName, sc.Name SchemaName, ob.Name TableName, count(b.name)
-FROM sys.dm_db_index_physical_stats (DB_ID(), NULL, NULL, NULL, NULL) AS ps
-	INNER JOIN sys.indexes AS b 
-		ON ps.OBJECT_ID = b.OBJECT_ID AND ps.index_id = b.index_id
-	INNER JOIN sys.databases AS db 
-		ON ps.database_ID = db.database_ID
-	INNER JOIN sys.objects AS ob 
-		ON ob.Object_ID = b.Object_ID
-	INNER JOIN sys.schemas AS sc 
-		ON ob.Schema_ID = sc.Schema_id
-	INNER JOIN 
-	(
-		SELECT so.name TableName, MAX(si.rows) RowCounts
-		FROM sysobjects so, sysindexes si 
-		WHERE so.xtype = 'U' AND si.id = OBJECT_ID(so.name) 
-		GROUP BY so.name	
-	) RowCnt
-	ON ob.Name = RowCnt.TableName
-WHERE ps.database_id = DB_ID()
-group by db.Name , ob.Name , sc.Name
-ORDER BY count(b.name) desc
-
-
-
+-- Cleanup
+DROP TABLE #IndexFragmentation;
